@@ -208,6 +208,8 @@ const AdminLogin = () => {
               Connection: {connectionStatus === 'testing' ? 'Testing...' : connectionStatus}
             </p>
           </div>
+          console.log("✅ AdminLogin mounted");
+
 
           {/* Database Status */}
           {databaseStatus && (
