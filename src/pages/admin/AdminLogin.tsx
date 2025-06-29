@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseStore } from '../../store/supabaseStore';
+import { supabase } from '../../integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { Lock, User, AlertCircle } from 'lucide-react';
+import { Lock, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const AdminLogin = () => {
@@ -13,11 +14,31 @@ const AdminLogin = () => {
   const { admins, currentAdmin, setCurrentAdmin, fetchAdmins, error, clearError } = useSupabaseStore();
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState('testing');
 
   useEffect(() => {
-    // Fetch admins when component mounts
-    console.log('Fetching admins for login...');
-    fetchAdmins();
+    // Test Supabase connection first
+    const testConnection = async () => {
+      try {
+        console.log('Testing Supabase connection...');
+        const { data, error } = await supabase.from('admins').select('count', { count: 'exact', head: true });
+        
+        if (error) {
+          console.error('Connection test failed:', error);
+          setConnectionStatus('failed');
+        } else {
+          console.log('Connection successful, admin count:', data);
+          setConnectionStatus('success');
+          // Now fetch admins
+          fetchAdmins();
+        }
+      } catch (err) {
+        console.error('Connection error:', err);
+        setConnectionStatus('failed');
+      }
+    };
+
+    testConnection();
   }, [fetchAdmins]);
 
   useEffect(() => {
@@ -80,6 +101,35 @@ const AdminLogin = () => {
     }
   };
 
+  const testDirectConnection = async () => {
+    try {
+      console.log('Testing direct Supabase connection...');
+      const { data, error } = await supabase.from('admins').select('*');
+      
+      if (error) {
+        console.error('Direct connection failed:', error);
+        toast({
+          title: "Connection Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        console.log('Direct connection successful:', data);
+        toast({
+          title: "Connection Successful",
+          description: `Found ${data.length} admin records`
+        });
+      }
+    } catch (err) {
+      console.error('Direct connection error:', err);
+      toast({
+        title: "Connection Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   // Don't render anything if already logged in to prevent flash
   if (currentAdmin) {
     return null;
@@ -95,6 +145,26 @@ const AdminLogin = () => {
           <p className="text-gray-600">E-LIFE SOCIETY Admin Panel</p>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Connection Status */}
+          <div className={`p-3 rounded-md flex items-center gap-2 ${
+            connectionStatus === 'success' ? 'bg-green-50 border border-green-200' :
+            connectionStatus === 'failed' ? 'bg-red-50 border border-red-200' :
+            'bg-yellow-50 border border-yellow-200'
+          }`}>
+            {connectionStatus === 'success' ? (
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            ) : (
+              <AlertCircle className="h-4 w-4 text-yellow-500" />
+            )}
+            <p className={`text-sm ${
+              connectionStatus === 'success' ? 'text-green-600' :
+              connectionStatus === 'failed' ? 'text-red-600' :
+              'text-yellow-600'
+            }`}>
+              Connection: {connectionStatus === 'testing' ? 'Testing...' : connectionStatus}
+            </p>
+          </div>
+
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-red-500" />
@@ -111,6 +181,14 @@ const AdminLogin = () => {
                 Available usernames: {admins.map(a => a.username).join(', ')}
               </p>
             )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={testDirectConnection}
+              className="mt-2 text-xs"
+            >
+              Test Direct Connection
+            </Button>
           </div>
 
           <div>
@@ -122,7 +200,7 @@ const AdminLogin = () => {
                 type="text"
                 value={credentials.username}
                 onChange={(e) => setCredentials(prev => ({ ...prev, username: e.target.value }))}
-                placeholder="Enter username"
+                placeholder="Try: evaadmin"
                 className="pl-10"
                 onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
               />
@@ -138,7 +216,7 @@ const AdminLogin = () => {
                 type="password"
                 value={credentials.password}
                 onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
-                placeholder="Enter password"
+                placeholder="Try: eva919123"
                 className="pl-10"
                 onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
               />
@@ -147,7 +225,7 @@ const AdminLogin = () => {
 
           <Button 
             onClick={handleLogin} 
-            disabled={isLoading || admins.length === 0}
+            disabled={isLoading || connectionStatus !== 'success'}
             className="w-full"
           >
             {isLoading ? 'Logging in...' : 'Login'}

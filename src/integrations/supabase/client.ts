@@ -5,7 +5,24 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://drdbxnowpcwhbnxszbaf.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRyZGJ4bm93cGN3aGJueHN6YmFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExNzU5NzIsImV4cCI6MjA2Njc1MTk3Mn0.aoDKZpq1dRbXYc-1uc2eN0zpOi6Dd7u_kZek-_3fDfw";
 
+// Test the connection
+console.log('Supabase URL:', SUPABASE_URL);
+console.log('Supabase Key:', SUPABASE_PUBLISHABLE_KEY ? 'Present' : 'Missing');
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// Test connection on initialization
+supabase.from('categories').select('count', { count: 'exact', head: true })
+  .then(({ count, error }) => {
+    if (error) {
+      console.error('Supabase connection test failed:', error);
+    } else {
+      console.log('Supabase connection successful. Categories count:', count);
+    }
+  })
+  .catch(err => {
+    console.error('Supabase connection error:', err);
+  });
