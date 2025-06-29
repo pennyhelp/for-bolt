@@ -1,18 +1,44 @@
-
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSupabaseStore } from '../store/supabaseStore';
 import Navbar from '../components/Navbar';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { ArrowRight, Users, Award, Target, Megaphone } from 'lucide-react';
+import { ArrowRight, Users, Award, Target, Megaphone, AlertCircle, RefreshCw } from 'lucide-react';
 
 const Index = () => {
-  const { announcements, fetchAnnouncements } = useSupabaseStore();
+  const { announcements, fetchAnnouncements, error, clearError } = useSupabaseStore();
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    fetchAnnouncements();
-  }, [fetchAnnouncements]);
+    const loadData = async () => {
+      try {
+        console.log('Index page: Loading announcements...');
+        setIsLoading(true);
+        setHasError(false);
+        clearError();
+        
+        await fetchAnnouncements();
+        console.log('Index page: Announcements loaded successfully');
+      } catch (err) {
+        console.error('Index page: Error loading announcements:', err);
+        setHasError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [fetchAnnouncements, clearError]);
+
+  const handleRetry = () => {
+    setHasError(false);
+    setIsLoading(true);
+    fetchAnnouncements().finally(() => setIsLoading(false));
+  };
+
+  console.log('Index page rendering...', { isLoading, hasError, announcementsCount: announcements.length });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
@@ -53,8 +79,41 @@ const Index = () => {
         </div>
       </div>
 
+      {/* Error Display */}
+      {(error || hasError) && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Card className="bg-red-50 border-red-200">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <AlertCircle className="h-6 w-6 text-red-500" />
+                <h3 className="text-lg font-semibold text-red-800">
+                  Unable to load announcements
+                </h3>
+              </div>
+              <p className="text-red-700 mb-4">
+                {error || 'An error occurred while loading data from the server.'}
+              </p>
+              <Button onClick={handleRetry} variant="outline" className="border-red-300 text-red-700 hover:bg-red-100">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading announcements...</p>
+          </div>
+        </div>
+      )}
+
       {/* Announcements Section */}
-      {announcements.length > 0 && (
+      {!isLoading && !hasError && announcements.length > 0 && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 flex items-center justify-center gap-3">
