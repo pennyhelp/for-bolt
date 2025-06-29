@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseStore } from '../../store/supabaseStore';
 import { supabase } from '../../integrations/supabase/client';
+import { setupInitialData, checkDatabaseTables } from '../../utils/setupDatabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { Lock, User, AlertCircle, CheckCircle } from 'lucide-react';
+import { Lock, User, AlertCircle, CheckCircle, Database, RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const AdminLogin = () => {
@@ -15,6 +16,8 @@ const AdminLogin = () => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('testing');
+  const [isSettingUpDatabase, setIsSettingUpDatabase] = useState(false);
+  const [databaseStatus, setDatabaseStatus] = useState(null);
 
   useEffect(() => {
     // Test Supabase connection first
@@ -29,6 +32,11 @@ const AdminLogin = () => {
         } else {
           console.log('Connection successful, admin count:', data);
           setConnectionStatus('success');
+          
+          // Check database tables
+          const tableResults = await checkDatabaseTables();
+          setDatabaseStatus(tableResults);
+          
           // Now fetch admins
           fetchAdmins();
         }
@@ -130,13 +138,47 @@ const AdminLogin = () => {
     }
   };
 
+  const handleSetupDatabase = async () => {
+    setIsSettingUpDatabase(true);
+    
+    try {
+      const result = await setupInitialData();
+      
+      if (result.success) {
+        toast({
+          title: "Database Setup Successful",
+          description: result.message
+        });
+        
+        // Refresh data
+        await fetchAdmins();
+        const tableResults = await checkDatabaseTables();
+        setDatabaseStatus(tableResults);
+      } else {
+        toast({
+          title: "Database Setup Failed",
+          description: result.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Setup Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsSettingUpDatabase(false);
+    }
+  };
+
   // Don't render anything if already logged in to prevent flash
   if (currentAdmin) {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-gray-900">
@@ -165,6 +207,23 @@ const AdminLogin = () => {
             </p>
           </div>
 
+          {/* Database Status */}
+          {databaseStatus && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-blue-600 text-sm font-semibold mb-2">Database Status:</p>
+              <div className="space-y-1 text-xs">
+                {Object.entries(databaseStatus).map(([table, status]) => (
+                  <div key={table} className="flex justify-between">
+                    <span>{table}:</span>
+                    <span className={status.exists ? 'text-green-600' : 'text-red-600'}>
+                      {status.exists ? `${status.count} records` : 'Missing/Error'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-red-500" />
@@ -181,14 +240,30 @@ const AdminLogin = () => {
                 Available usernames: {admins.map(a => a.username).join(', ')}
               </p>
             )}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={testDirectConnection}
-              className="mt-2 text-xs"
-            >
-              Test Direct Connection
-            </Button>
+            <div className="flex gap-2 mt-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={testDirectConnection}
+                className="text-xs"
+              >
+                Test Connection
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleSetupDatabase}
+                disabled={isSettingUpDatabase}
+                className="text-xs flex items-center gap-1"
+              >
+                {isSettingUpDatabase ? (
+                  <RefreshCw className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Database className="h-3 w-3" />
+                )}
+                Setup Database
+              </Button>
+            </div>
           </div>
 
           <div>
