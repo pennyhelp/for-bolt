@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { useAppStore } from '../store/appStore';
+import { useSupabaseStore } from '../store/supabaseStore';
 import Navbar from '../components/Navbar';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -11,7 +10,7 @@ import { Search, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const StatusCheck = () => {
-  const { registrations } = useAppStore();
+  const { registrations } = useSupabaseStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResult, setSearchResult] = useState(null);
 

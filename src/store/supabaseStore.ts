@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { supabase } from '../integrations/supabase/client';
 
@@ -97,7 +96,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       const { data, error } = await supabase
         .from('categories')
         .select('*')
-        .eq('is_active', true);
+        .order('created_at', { ascending: true });
       
       if (error) {
         console.error('Error fetching categories:', error);
@@ -127,7 +126,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       const { data, error } = await supabase
         .from('panchayaths')
         .select('*')
-        .eq('is_active', true);
+        .order('name', { ascending: true });
       
       if (error) {
         console.error('Error fetching panchayaths:', error);
@@ -186,7 +185,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     try {
       const { data, error } = await supabase
         .from('admins')
-        .select('*');
+        .select('*')
+        .order('username', { ascending: true });
       
       if (error) {
         console.error('Error fetching admins:', error);
@@ -251,6 +251,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         throw error;
       }
       
+      // Refresh registrations after adding
       await get().fetchRegistrations();
       return customerId;
     } catch (error) {
@@ -261,18 +262,28 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
   updateRegistration: async (id, updates) => {
     try {
+      const updateData: any = {};
+      
+      if (updates.status !== undefined) updateData.status = updates.status;
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.address !== undefined) updateData.address = updates.address;
+      if (updates.mobileNumber !== undefined) updateData.mobile_number = updates.mobileNumber;
+      if (updates.ward !== undefined) updateData.ward = updates.ward;
+      if (updates.agentPro !== undefined) updateData.agent_pro = updates.agentPro;
+      
+      updateData.updated_at = new Date().toISOString();
+
       const { error } = await supabase
         .from('registrations')
-        .update({
-          status: updates.status,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', id);
       
       if (error) {
         console.error('Error updating registration:', error);
         throw error;
       }
+      
+      // Refresh registrations after updating
       await get().fetchRegistrations();
     } catch (error) {
       console.error('Error updating registration:', error);
@@ -287,7 +298,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .insert({
           name: panchayath.name,
           district: panchayath.district,
-          is_active: true
+          is_active: panchayath.isActive !== undefined ? panchayath.isActive : true
         });
       
       if (error) {
@@ -303,13 +314,17 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
   updatePanchayath: async (id, updates) => {
     try {
+      const updateData: any = {};
+      
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.district !== undefined) updateData.district = updates.district;
+      if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+      
+      updateData.updated_at = new Date().toISOString();
+
       const { error } = await supabase
         .from('panchayaths')
-        .update({
-          name: updates.name,
-          district: updates.district,
-          is_active: updates.isActive
-        })
+        .update(updateData)
         .eq('id', id);
       
       if (error) {
@@ -348,10 +363,10 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .insert({
           name: category.name,
           description: category.description,
-          actual_fee: category.actualFee,
-          offer_fee: category.offerFee,
-          image_url: category.image,
-          is_active: true
+          actual_fee: category.actualFee || 0,
+          offer_fee: category.offerFee || 0,
+          image_url: category.image || null,
+          is_active: category.isActive !== undefined ? category.isActive : true
         });
       
       if (error) {
@@ -367,16 +382,20 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
   updateCategory: async (id, updates) => {
     try {
+      const updateData: any = {};
+      
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.actualFee !== undefined) updateData.actual_fee = updates.actualFee;
+      if (updates.offerFee !== undefined) updateData.offer_fee = updates.offerFee;
+      if (updates.image !== undefined) updateData.image_url = updates.image || null;
+      if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+      
+      updateData.updated_at = new Date().toISOString();
+
       const { error } = await supabase
         .from('categories')
-        .update({
-          name: updates.name,
-          description: updates.description,
-          actual_fee: updates.actualFee,
-          offer_fee: updates.offerFee,
-          image_url: updates.image,
-          is_active: updates.isActive
-        })
+        .update(updateData)
         .eq('id', id);
       
       if (error) {
@@ -410,11 +429,16 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
   updateAdmin: async (id, updates) => {
     try {
+      const updateData: any = {};
+      
+      if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+      if (updates.role !== undefined) updateData.role = updates.role;
+      
+      updateData.updated_at = new Date().toISOString();
+
       const { error } = await supabase
         .from('admins')
-        .update({
-          is_active: updates.isActive
-        })
+        .update(updateData)
         .eq('id', id);
       
       if (error) {
