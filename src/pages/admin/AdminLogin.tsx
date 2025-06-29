@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseStore } from '../../store/supabaseStore';
@@ -6,23 +5,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { Lock, User } from 'lucide-react';
+import { Lock, User, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
-  const { admins, currentAdmin, setCurrentAdmin, fetchAdmins } = useSupabaseStore();
+  const { admins, currentAdmin, setCurrentAdmin, fetchAdmins, error, clearError } = useSupabaseStore();
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Fetch admins only once when component mounts
+    // Fetch admins when component mounts
+    console.log('Fetching admins for login...');
     fetchAdmins();
-  }, []);
+  }, [fetchAdmins]);
 
   useEffect(() => {
     // Only redirect if currentAdmin exists and we're not already navigating
     if (currentAdmin && !isLoading) {
+      console.log('Admin logged in, redirecting to dashboard...');
       navigate('/admin/dashboard');
     }
   }, [currentAdmin, navigate, isLoading]);
@@ -38,8 +39,12 @@ const AdminLogin = () => {
     }
 
     setIsLoading(true);
+    clearError();
 
     try {
+      console.log('Attempting login with:', credentials.username);
+      console.log('Available admins:', admins.length);
+      
       const admin = admins.find(
         a => a.username === credentials.username && 
              a.password === credentials.password && 
@@ -48,12 +53,14 @@ const AdminLogin = () => {
 
       setTimeout(() => {
         if (admin) {
+          console.log('Login successful for:', admin.username);
           setCurrentAdmin(admin);
           toast({
             title: "Login Successful",
             description: `Welcome, ${admin.username}!`
           });
         } else {
+          console.log('Login failed - invalid credentials or inactive account');
           toast({
             title: "Login Failed", 
             description: "Invalid credentials or account is inactive",
@@ -88,6 +95,24 @@ const AdminLogin = () => {
           <p className="text-gray-600">E-LIFE SOCIETY Admin Panel</p>
         </CardHeader>
         <CardContent className="space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-red-500" />
+              <p className="text-red-600 text-sm">{error}</p>
+            </div>
+          )}
+          
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-blue-600 text-sm">
+              <strong>Debug Info:</strong> {admins.length} admin accounts loaded
+            </p>
+            {admins.length > 0 && (
+              <p className="text-blue-600 text-xs mt-1">
+                Available usernames: {admins.map(a => a.username).join(', ')}
+              </p>
+            )}
+          </div>
+
           <div>
             <Label htmlFor="username">Username</Label>
             <div className="relative">
@@ -122,7 +147,7 @@ const AdminLogin = () => {
 
           <Button 
             onClick={handleLogin} 
-            disabled={isLoading}
+            disabled={isLoading || admins.length === 0}
             className="w-full"
           >
             {isLoading ? 'Logging in...' : 'Login'}

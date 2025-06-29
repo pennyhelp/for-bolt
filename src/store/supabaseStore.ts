@@ -59,6 +59,7 @@ interface SupabaseStore {
   announcements: Announcement[];
   currentAdmin: Admin | null;
   loading: boolean;
+  error: string | null;
   
   // Actions
   fetchCategories: () => Promise<void>;
@@ -79,6 +80,7 @@ interface SupabaseStore {
   generateCustomerId: (mobile: string, name: string) => string;
   getRegistrationByMobile: (mobile: string) => Registration | undefined;
   setupRealtimeSubscriptions: () => void;
+  clearError: () => void;
 }
 
 export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
@@ -89,10 +91,15 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   announcements: [],
   currentAdmin: null,
   loading: false,
+  error: null,
+
+  clearError: () => set({ error: null }),
 
   fetchCategories: async () => {
     try {
-      set({ loading: true });
+      set({ loading: true, error: null });
+      console.log('Fetching categories...');
+      
       const { data, error } = await supabase
         .from('categories')
         .select('*')
@@ -100,9 +107,11 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       
       if (error) {
         console.error('Error fetching categories:', error);
-        set({ loading: false });
+        set({ error: error.message, loading: false });
         return;
       }
+      
+      console.log('Categories data:', data);
       
       const categories = data?.map(item => ({
         id: item.id,
@@ -114,15 +123,19 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         isActive: item.is_active
       })) || [];
       
+      console.log('Processed categories:', categories);
       set({ categories, loading: false });
     } catch (error) {
       console.error('Error fetching categories:', error);
-      set({ loading: false });
+      set({ error: error.message, loading: false });
     }
   },
 
   fetchPanchayaths: async () => {
     try {
+      set({ error: null });
+      console.log('Fetching panchayaths...');
+      
       const { data, error } = await supabase
         .from('panchayaths')
         .select('*')
@@ -130,8 +143,11 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       
       if (error) {
         console.error('Error fetching panchayaths:', error);
+        set({ error: error.message });
         return;
       }
+      
+      console.log('Panchayaths data:', data);
       
       const panchayaths = data?.map(item => ({
         id: item.id,
@@ -140,14 +156,19 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         isActive: item.is_active
       })) || [];
       
+      console.log('Processed panchayaths:', panchayaths);
       set({ panchayaths });
     } catch (error) {
       console.error('Error fetching panchayaths:', error);
+      set({ error: error.message });
     }
   },
 
   fetchRegistrations: async () => {
     try {
+      set({ error: null });
+      console.log('Fetching registrations...');
+      
       const { data, error } = await supabase
         .from('registrations')
         .select('*')
@@ -155,8 +176,11 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       
       if (error) {
         console.error('Error fetching registrations:', error);
+        set({ error: error.message });
         return;
       }
+      
+      console.log('Registrations data:', data);
       
       const registrations = data?.map(item => ({
         id: item.id,
@@ -175,14 +199,19 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         updatedAt: item.updated_at
       })) || [];
       
+      console.log('Processed registrations:', registrations);
       set({ registrations });
     } catch (error) {
       console.error('Error fetching registrations:', error);
+      set({ error: error.message });
     }
   },
 
   fetchAdmins: async () => {
     try {
+      set({ error: null });
+      console.log('Fetching admins...');
+      
       const { data, error } = await supabase
         .from('admins')
         .select('*')
@@ -190,8 +219,11 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       
       if (error) {
         console.error('Error fetching admins:', error);
+        set({ error: error.message });
         return;
       }
+      
+      console.log('Admins data:', data);
       
       const admins = data?.map(item => ({
         id: item.id,
@@ -201,14 +233,19 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         isActive: item.is_active
       })) || [];
       
+      console.log('Processed admins:', admins);
       set({ admins });
     } catch (error) {
       console.error('Error fetching admins:', error);
+      set({ error: error.message });
     }
   },
 
   fetchAnnouncements: async () => {
     try {
+      set({ error: null });
+      console.log('Fetching announcements...');
+      
       const { data, error } = await supabase
         .from('announcements')
         .select('*')
@@ -217,12 +254,15 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       
       if (error) {
         console.error('Error fetching announcements:', error);
+        set({ error: error.message });
         return;
       }
       
+      console.log('Announcements data:', data);
       set({ announcements: data || [] });
     } catch (error) {
       console.error('Error fetching announcements:', error);
+      set({ error: error.message });
     }
   },
 
@@ -230,6 +270,9 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     const customerId = get().generateCustomerId(registration.mobileNumber, registration.name);
     
     try {
+      set({ error: null });
+      console.log('Adding registration:', { ...registration, customerId });
+      
       const { error } = await supabase
         .from('registrations')
         .insert({
@@ -248,20 +291,25 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       
       if (error) {
         console.error('Error adding registration:', error);
+        set({ error: error.message });
         throw error;
       }
       
-      // Refresh registrations after adding
+      console.log('Registration added successfully');
       await get().fetchRegistrations();
       return customerId;
     } catch (error) {
       console.error('Error adding registration:', error);
+      set({ error: error.message });
       throw error;
     }
   },
 
   updateRegistration: async (id, updates) => {
     try {
+      set({ error: null });
+      console.log('Updating registration:', id, updates);
+      
       const updateData: any = {};
       
       if (updates.status !== undefined) updateData.status = updates.status;
@@ -280,19 +328,24 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       
       if (error) {
         console.error('Error updating registration:', error);
+        set({ error: error.message });
         throw error;
       }
       
-      // Refresh registrations after updating
+      console.log('Registration updated successfully');
       await get().fetchRegistrations();
     } catch (error) {
       console.error('Error updating registration:', error);
+      set({ error: error.message });
       throw error;
     }
   },
 
   addPanchayath: async (panchayath) => {
     try {
+      set({ error: null });
+      console.log('Adding panchayath:', panchayath);
+      
       const { error } = await supabase
         .from('panchayaths')
         .insert({
@@ -303,17 +356,24 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       
       if (error) {
         console.error('Error adding panchayath:', error);
+        set({ error: error.message });
         throw error;
       }
+      
+      console.log('Panchayath added successfully');
       await get().fetchPanchayaths();
     } catch (error) {
       console.error('Error adding panchayath:', error);
+      set({ error: error.message });
       throw error;
     }
   },
 
   updatePanchayath: async (id, updates) => {
     try {
+      set({ error: null });
+      console.log('Updating panchayath:', id, updates);
+      
       const updateData: any = {};
       
       if (updates.name !== undefined) updateData.name = updates.name;
@@ -329,17 +389,24 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       
       if (error) {
         console.error('Error updating panchayath:', error);
+        set({ error: error.message });
         throw error;
       }
+      
+      console.log('Panchayath updated successfully');
       await get().fetchPanchayaths();
     } catch (error) {
       console.error('Error updating panchayath:', error);
+      set({ error: error.message });
       throw error;
     }
   },
 
   deletePanchayath: async (id) => {
     try {
+      set({ error: null });
+      console.log('Deleting panchayath:', id);
+      
       const { error } = await supabase
         .from('panchayaths')
         .delete()
@@ -347,17 +414,24 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       
       if (error) {
         console.error('Error deleting panchayath:', error);
+        set({ error: error.message });
         throw error;
       }
+      
+      console.log('Panchayath deleted successfully');
       await get().fetchPanchayaths();
     } catch (error) {
       console.error('Error deleting panchayath:', error);
+      set({ error: error.message });
       throw error;
     }
   },
 
   addCategory: async (category) => {
     try {
+      set({ error: null });
+      console.log('Adding category:', category);
+      
       const { error } = await supabase
         .from('categories')
         .insert({
@@ -371,17 +445,24 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       
       if (error) {
         console.error('Error adding category:', error);
+        set({ error: error.message });
         throw error;
       }
+      
+      console.log('Category added successfully');
       await get().fetchCategories();
     } catch (error) {
       console.error('Error adding category:', error);
+      set({ error: error.message });
       throw error;
     }
   },
 
   updateCategory: async (id, updates) => {
     try {
+      set({ error: null });
+      console.log('Updating category:', id, updates);
+      
       const updateData: any = {};
       
       if (updates.name !== undefined) updateData.name = updates.name;
@@ -400,17 +481,24 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       
       if (error) {
         console.error('Error updating category:', error);
+        set({ error: error.message });
         throw error;
       }
+      
+      console.log('Category updated successfully');
       await get().fetchCategories();
     } catch (error) {
       console.error('Error updating category:', error);
+      set({ error: error.message });
       throw error;
     }
   },
 
   deleteCategory: async (id) => {
     try {
+      set({ error: null });
+      console.log('Deleting category:', id);
+      
       const { error } = await supabase
         .from('categories')
         .delete()
@@ -418,17 +506,24 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       
       if (error) {
         console.error('Error deleting category:', error);
+        set({ error: error.message });
         throw error;
       }
+      
+      console.log('Category deleted successfully');
       await get().fetchCategories();
     } catch (error) {
       console.error('Error deleting category:', error);
+      set({ error: error.message });
       throw error;
     }
   },
 
   updateAdmin: async (id, updates) => {
     try {
+      set({ error: null });
+      console.log('Updating admin:', id, updates);
+      
       const updateData: any = {};
       
       if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
@@ -443,11 +538,15 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       
       if (error) {
         console.error('Error updating admin:', error);
+        set({ error: error.message });
         throw error;
       }
+      
+      console.log('Admin updated successfully');
       await get().fetchAdmins();
     } catch (error) {
       console.error('Error updating admin:', error);
+      set({ error: error.message });
       throw error;
     }
   },
@@ -465,10 +564,13 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
   setupRealtimeSubscriptions: () => {
     try {
+      console.log('Setting up realtime subscriptions...');
+      
       // Subscribe to categories changes
       supabase
         .channel('categories')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, () => {
+          console.log('Categories changed, refetching...');
           get().fetchCategories();
         })
         .subscribe();
@@ -477,6 +579,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       supabase
         .channel('registrations')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => {
+          console.log('Registrations changed, refetching...');
           get().fetchRegistrations();
         })
         .subscribe();
@@ -485,6 +588,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       supabase
         .channel('panchayaths')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'panchayaths' }, () => {
+          console.log('Panchayaths changed, refetching...');
           get().fetchPanchayaths();
         })
         .subscribe();
@@ -493,6 +597,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       supabase
         .channel('announcements')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => {
+          console.log('Announcements changed, refetching...');
           get().fetchAnnouncements();
         })
         .subscribe();
