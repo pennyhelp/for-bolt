@@ -14,6 +14,8 @@ import AdminRegistrations from "./pages/admin/AdminRegistrations";
 import AdminPanchayaths from "./pages/admin/AdminPanchayaths";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminRoles from "./pages/admin/AdminRoles";
+import NewAdminLogin from "./pages/admin/NewAdminLogin";
+import NewAdminDashboard from "./pages/admin/NewAdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -47,6 +49,8 @@ const App = () => {
                 <Route path="/admin/panchayaths" element={<AdminPanchayaths />} />
                 <Route path="/admin/categories" element={<AdminCategories />} />
                 <Route path="/admin/roles" element={<AdminRoles />} />
+                <Route path="/admin/new-login" element={<NewAdminLogin />} />
+                <Route path="/admin/new-dashboard" element={<NewAdminDashboard />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </ErrorBoundary>
