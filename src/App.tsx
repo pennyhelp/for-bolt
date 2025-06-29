@@ -16,6 +16,7 @@ import AdminCategories from "./pages/admin/AdminCategories";
 import AdminRoles from "./pages/admin/AdminRoles";
 import NewAdminLogin from "./pages/admin/NewAdminLogin";
 import NewAdminDashboard from "./pages/admin/NewAdminDashboard";
+import SimpleAdmin from "./pages/admin/SimpleAdmin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -51,6 +52,7 @@ const App = () => {
                 <Route path="/admin/roles" element={<AdminRoles />} />
                 <Route path="/admin/new-login" element={<NewAdminLogin />} />
                 <Route path="/admin/new-dashboard" element={<NewAdminDashboard />} />
+                <Route path="/admin/simple" element={<SimpleAdmin />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </ErrorBoundary>
